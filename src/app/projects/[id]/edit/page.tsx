@@ -10,6 +10,7 @@ import { toast } from "sonner"
 import { Timeline } from "@/components/editor/timeline"
 import { SubtitleEditor } from "@/components/editor/subtitle-editor"
 import { AudioMixer } from "@/components/editor/audio-mixer"
+import { HighlightDetector } from "@/components/editor/highlight-detector"
 import { updateVideoSettings } from "@/actions/project"
 
 // プロジェクトデータ型
@@ -169,12 +170,23 @@ export default function EditProjectPage() {
       <div className="grid lg:grid-cols-3 gap-8">
         {/* 編集パネル */}
         <div className="lg:col-span-2 space-y-6">
+          {/* AIハイライト検出 */}
+          {project.sourceVideo && (
+            <HighlightDetector
+              videoId={project.sourceVideo.id}
+              onHighlightSelect={(start, end) => {
+                setStartTime(start)
+                setEndTime(end)
+              }}
+            />
+          )}
+
           {/* タイムライン */}
           <Card>
             <CardHeader>
               <CardTitle>⏱️ 切り出し範囲</CardTitle>
               <CardDescription>
-                55秒分の範囲をドラッグして選択（動画長: {Math.floor(videoDuration / 60)}分{Math.floor(videoDuration % 60)}秒）
+                AIが提案した範囲、または手動で選択（動画長: {Math.floor(videoDuration / 60)}分{Math.floor(videoDuration % 60)}秒）
               </CardDescription>
             </CardHeader>
             <CardContent>
