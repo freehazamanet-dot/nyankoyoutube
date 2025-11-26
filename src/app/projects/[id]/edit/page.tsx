@@ -9,6 +9,7 @@ import { Slider } from "@/components/ui/slider"
 import { toast } from "sonner"
 import { Timeline } from "@/components/editor/timeline"
 import { SubtitleEditor } from "@/components/editor/subtitle-editor"
+import { AudioMixer } from "@/components/editor/audio-mixer"
 import { updateVideoSettings } from "@/actions/project"
 
 // プロジェクトデータ型
@@ -17,6 +18,14 @@ interface Subtitle {
   text: string
   startTime: number
   endTime: number
+}
+
+interface AudioTrack {
+  id: string
+  type: "BGM" | "SE"
+  filePath: string
+  volume: number
+  startTime: number
 }
 
 interface ProjectData {
@@ -31,6 +40,7 @@ interface ProjectData {
     cropX: number | null
     cropY: number | null
     subtitles: Subtitle[]
+    audioTracks: AudioTrack[]
   }
   openingVideo?: {
     id: string
@@ -232,6 +242,14 @@ export default function EditProjectPage() {
               subtitles={project.sourceVideo.subtitles || []}
             />
           )}
+
+          {/* BGM・効果音 */}
+          {project.sourceVideo && (
+            <AudioMixer
+              videoId={project.sourceVideo.id}
+              audioTracks={project.sourceVideo.audioTracks || []}
+            />
+          )}
         </div>
 
         {/* サイドパネル */}
@@ -290,6 +308,10 @@ export default function EditProjectPage() {
                 <div className="flex justify-between">
                   <dt className="text-muted-foreground">テロップ数</dt>
                   <dd className="font-mono">{project.sourceVideo?.subtitles?.length || 0}件</dd>
+                </div>
+                <div className="flex justify-between">
+                  <dt className="text-muted-foreground">BGM/SE</dt>
+                  <dd className="font-mono">{project.sourceVideo?.audioTracks?.length || 0}件</dd>
                 </div>
               </dl>
             </CardContent>

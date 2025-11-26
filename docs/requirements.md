@@ -451,9 +451,9 @@ startRendering(projectId: string): Promise<RenderJob>
 - [x] テロップ手動編集 UI
 
 ### Phase 4: 追加機能（5週目）
-- [ ] BGM/SE 追加機能
-- [ ] 音量調整機能
-- [ ] プリセット BGM/SE ライブラリ
+- [x] BGM/SE 追加機能
+- [x] 音量調整機能
+- [x] プリセット BGM/SE ライブラリ
 
 ### Phase 5: インフラ・デプロイ（6週目）
 - [ ] Docker 化
