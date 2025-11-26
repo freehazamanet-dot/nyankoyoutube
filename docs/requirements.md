@@ -429,10 +429,10 @@ startRendering(projectId: string): Promise<RenderJob>
 ## 9. 開発フェーズ
 
 ### Phase 1: 基盤構築（1週目）
-- [ ] Next.js プロジェクトセットアップ（App Router）
-- [ ] Prisma + PostgreSQL セットアップ
-- [ ] Tailwind CSS + shadcn/ui 設定
-- [ ] 基本的なレイアウト・ナビゲーション
+- [x] Next.js プロジェクトセットアップ（App Router）
+- [x] Prisma + PostgreSQL セットアップ
+- [x] Tailwind CSS + shadcn/ui 設定
+- [x] 基本的なレイアウト・ナビゲーション
 - [ ] Cloud Storage 連携（アップロード機能）
 
 ### Phase 2: コア機能実装（2-3週目）
