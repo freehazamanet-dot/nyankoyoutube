@@ -444,11 +444,11 @@ startRendering(projectId: string): Promise<RenderJob>
 - [ ] プレビュー機能（Remotion Player統合済み、動画読み込み未実装）
 
 ### Phase 3: テロップ機能（4週目）
-- [ ] Whisper API 連携
-- [ ] テロップ自動生成
-- [ ] テロップスタイリング（ゴシック体・縁取り）
-- [ ] タイミング同期
-- [ ] テロップ手動編集 UI
+- [x] Whisper API 連携
+- [x] テロップ自動生成
+- [x] テロップスタイリング（ゴシック体・縁取り）
+- [x] タイミング同期
+- [x] テロップ手動編集 UI
 
 ### Phase 4: 追加機能（5週目）
 - [ ] BGM/SE 追加機能
