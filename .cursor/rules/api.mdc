@@ -1,0 +1,346 @@
+---
+description: API Routes と外部サービス連携のルール
+globs: ["src/app/api/**/*.ts", "src/lib/**/*.ts"]
+alwaysApply: false
+---
+
+# API ルール
+
+## API Routes 構成
+
+### ディレクトリ構造
+```
+src/app/api/
+├── projects/
+│   ├── route.ts          # GET /api/projects, POST /api/projects
+│   └── [id]/
+│       └── route.ts      # GET, PUT, DELETE /api/projects/[id]
+├── upload/
+│   └── route.ts          # POST /api/upload
+├── transcribe/
+│   └── route.ts          # POST /api/transcribe
+├── detect-cursor/
+│   └── route.ts          # POST /api/detect-cursor（カーソル位置検出）
+├── cursor-track/
+│   └── [videoId]/
+│       └── route.ts      # GET /api/cursor-track/[videoId]
+└── render/
+    ├── route.ts          # POST /api/render
+    └── [id]/
+        └── status/
+            └── route.ts  # GET /api/render/[id]/status
+```
+
+## レスポンス形式
+
+### 成功レスポンス
+```typescript
+import { NextResponse } from "next/server"
+
+// 単一リソース
+return NextResponse.json({
+  success: true,
+  data: project,
+})
+
+// リスト
+return NextResponse.json({
+  success: true,
+  data: projects,
+  meta: {
+    total: 100,
+    page: 1,
+    limit: 10,
+  },
+})
+```
+
+### エラーレスポンス
+```typescript
+return NextResponse.json(
+  {
+    success: false,
+    error: {
+      code: "VALIDATION_ERROR",
+      message: "開始時間は終了時間より前である必要があります",
+    },
+  },
+  { status: 400 }
+)
+```
+
+## Cloud Storage 連携
+
+### アップロード
+```typescript
+// src/lib/storage.ts
+import { Storage } from "@google-cloud/storage"
+
+const storage = new Storage()
+const bucket = storage.bucket(process.env.GCS_BUCKET_NAME!)
+
+export async function uploadVideo(
+  file: Buffer,
+  filename: string
+): Promise<string> {
+  const blob = bucket.file(`videos/${filename}`)
+  await blob.save(file, {
+    contentType: "video/mp4",
+  })
+  return `gs://${bucket.name}/${blob.name}`
+}
+
+export async function getSignedUrl(filePath: string): Promise<string> {
+  const [url] = await bucket.file(filePath).getSignedUrl({
+    action: "read",
+    expires: Date.now() + 60 * 60 * 1000, // 1時間
+  })
+  return url
+}
+```
+
+## Whisper API 連携
+
+### 音声文字起こし
+```typescript
+// src/lib/whisper.ts
+import OpenAI from "openai"
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+})
+
+export async function transcribeAudio(
+  audioPath: string
+): Promise<TranscriptionResult> {
+  const response = await openai.audio.transcriptions.create({
+    file: fs.createReadStream(audioPath),
+    model: "whisper-1",
+    language: "ja",
+    response_format: "verbose_json",
+    timestamp_granularities: ["word", "segment"],
+  })
+
+  return {
+    text: response.text,
+    segments: response.segments?.map((seg) => ({
+      text: seg.text,
+      start: seg.start,
+      end: seg.end,
+    })),
+  }
+}
+```
+
+## FFmpeg 連携
+
+### 動画処理
+```typescript
+// src/lib/ffmpeg.ts
+import ffmpeg from "fluent-ffmpeg"
+
+export async function extractAudio(
+  videoPath: string,
+  outputPath: string
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    ffmpeg(videoPath)
+      .output(outputPath)
+      .noVideo()
+      .audioCodec("libmp3lame")
+      .on("end", resolve)
+      .on("error", reject)
+      .run()
+  })
+}
+
+export async function trimVideo(
+  inputPath: string,
+  outputPath: string,
+  startTime: number,
+  duration: number
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    ffmpeg(inputPath)
+      .setStartTime(startTime)
+      .setDuration(duration)
+      .output(outputPath)
+      .on("end", resolve)
+      .on("error", reject)
+      .run()
+  })
+}
+```
+
+## カーソル追跡機能
+
+### カーソル検出（画像解析）
+```typescript
+// src/lib/cursor-detector.ts
+import * as tf from "@tensorflow/tfjs-node"
+
+interface CursorPosition {
+  frameNumber: number
+  x: number
+  y: number
+  confidence: number
+}
+
+export async function detectCursorInVideo(
+  videoPath: string,
+  fps: number = 30
+): Promise<CursorPosition[]> {
+  const positions: CursorPosition[] = []
+  
+  // FFmpegでフレームを抽出
+  const frames = await extractFrames(videoPath, fps)
+  
+  for (let i = 0; i < frames.length; i++) {
+    const cursor = await detectCursorInFrame(frames[i])
+    positions.push({
+      frameNumber: i,
+      x: cursor.x,
+      y: cursor.y,
+      confidence: cursor.confidence,
+    })
+  }
+  
+  // スムージング処理（急激な移動を緩和）
+  return smoothPositions(positions)
+}
+
+function smoothPositions(positions: CursorPosition[]): CursorPosition[] {
+  // 移動平均フィルタでスムージング
+  const windowSize = 5
+  return positions.map((pos, i) => {
+    const start = Math.max(0, i - windowSize)
+    const end = Math.min(positions.length, i + windowSize + 1)
+    const window = positions.slice(start, end)
+    
+    return {
+      ...pos,
+      x: Math.round(window.reduce((sum, p) => sum + p.x, 0) / window.length),
+      y: Math.round(window.reduce((sum, p) => sum + p.y, 0) / window.length),
+    }
+  })
+}
+```
+
+### クロップ位置計算
+```typescript
+// src/lib/smart-crop.ts
+interface CropPosition {
+  x: number
+  y: number
+}
+
+export function calculateCropPosition(
+  cursorX: number,
+  cursorY: number,
+  sourceWidth: number,   // 1920 (16:9)
+  sourceHeight: number,  // 1080 (16:9)
+  outputWidth: number,   // 1080 (9:16)
+  outputHeight: number   // 1920 (9:16)
+): CropPosition {
+  // 9:16のクロップ領域サイズ（元動画内）
+  const cropWidth = sourceHeight * (outputWidth / outputHeight) // 607.5px
+  const cropHeight = sourceHeight // 1080px
+  
+  // カーソルを中心にクロップ、ただし画面外にはみ出さない
+  let cropX = cursorX - cropWidth / 2
+  let cropY = cursorY - cropHeight / 2
+  
+  // 境界チェック
+  cropX = Math.max(0, Math.min(cropX, sourceWidth - cropWidth))
+  cropY = Math.max(0, Math.min(cropY, sourceHeight - cropHeight))
+  
+  return { x: Math.round(cropX), y: Math.round(cropY) }
+}
+```
+
+## Cloud Tasks 非同期処理
+
+### タスク作成
+```typescript
+// src/lib/tasks.ts
+import { CloudTasksClient } from "@google-cloud/tasks"
+
+const client = new CloudTasksClient()
+
+export async function enqueueRenderTask(
+  projectId: string
+): Promise<string> {
+  const parent = client.queuePath(
+    process.env.GCP_PROJECT_ID!,
+    process.env.GCP_LOCATION!,
+    "render-queue"
+  )
+
+  const [response] = await client.createTask({
+    parent,
+    task: {
+      httpRequest: {
+        httpMethod: "POST",
+        url: `${process.env.APP_URL}/api/render/process`,
+        body: Buffer.from(JSON.stringify({ projectId })).toString("base64"),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      },
+    },
+  })
+
+  return response.name!
+}
+```
+
+## エラーハンドリング
+
+### 共通パターン
+```typescript
+import { NextResponse } from "next/server"
+import { ZodError } from "zod"
+import { Prisma } from "@prisma/client"
+
+export function handleApiError(error: unknown) {
+  console.error("API Error:", error)
+
+  if (error instanceof ZodError) {
+    return NextResponse.json(
+      { success: false, error: { code: "VALIDATION_ERROR", message: error.errors[0].message } },
+      { status: 400 }
+    )
+  }
+
+  if (error instanceof Prisma.PrismaClientKnownRequestError) {
+    if (error.code === "P2025") {
+      return NextResponse.json(
+        { success: false, error: { code: "NOT_FOUND", message: "リソースが見つかりません" } },
+        { status: 404 }
+      )
+    }
+  }
+
+  return NextResponse.json(
+    { success: false, error: { code: "INTERNAL_ERROR", message: "サーバーエラーが発生しました" } },
+    { status: 500 }
+  )
+}
+```
+
+## 環境変数
+```env
+# Database
+DATABASE_URL=postgresql://...
+
+# Google Cloud
+GCP_PROJECT_ID=nyankotube
+GCP_LOCATION=asia-northeast1
+GCS_BUCKET_NAME=nyankotube-videos
+
+# OpenAI
+OPENAI_API_KEY=sk-...
+
+# App
+APP_URL=https://nyankotube.example.com
+```

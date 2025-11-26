@@ -1,0 +1,59 @@
+---
+description: NyankoTube プロジェクト全般のルール
+globs: ["**/*"]
+alwaysApply: true
+---
+
+# NyankoTube プロジェクトルール
+
+## プロジェクト概要
+NyankoTubeは、長尺動画（60分程度）からYouTubeショート向けの60秒縦型動画を自動生成するWebアプリケーションです。
+
+## 技術スタック
+- **フレームワーク**: Next.js 14 (App Router)
+- **言語**: TypeScript 5.x
+- **ORM**: Prisma
+- **データベース**: PostgreSQL
+- **スタイリング**: Tailwind CSS + shadcn/ui
+- **動画生成**: Remotion + FFmpeg
+- **音声認識**: Whisper API (OpenAI)
+- **インフラ**: Google Cloud Platform (Cloud Run, Cloud SQL, Cloud Storage)
+
+## コーディング規約
+
+### 全般
+- すべてのコードはTypeScriptで記述する
+- 厳格な型定義を使用し、`any`型の使用は避ける
+- コメントは日本語で記述する
+- ファイル名はケバブケース（例: `video-uploader.tsx`）
+- コンポーネント名はパスカルケース（例: `VideoUploader`）
+- 関数・変数名はキャメルケース（例: `handleUpload`）
+
+### インポート順序
+1. React/Next.js関連
+2. 外部ライブラリ
+3. 内部モジュール（`@/`エイリアス使用）
+4. 型定義
+5. スタイル
+
+### エラーハンドリング
+- try-catchを適切に使用する
+- ユーザー向けエラーメッセージは日本語で表示
+- エラーログは詳細に記録する
+
+## ディレクトリ構成
+```
+src/
+├── app/          # Next.js App Router（ページ・API）
+├── components/   # Reactコンポーネント
+├── remotion/     # Remotion動画テンプレート
+├── lib/          # ユーティリティ・設定
+├── actions/      # Server Actions
+└── types/        # 型定義
+```
+
+## 出力仕様
+- 動画形式: MP4
+- 解像度: 1080 x 1920（9:16縦型）
+- 動画長: 60秒（オープニング5秒 + 本編55秒）
+- フレームレート: 30fps

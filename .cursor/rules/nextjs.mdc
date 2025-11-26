@@ -1,0 +1,97 @@
+---
+description: Next.js App Router のルール
+globs: ["src/app/**/*.{ts,tsx}"]
+alwaysApply: false
+---
+
+# Next.js App Router ルール
+
+## ファイル構成
+- `page.tsx` - ページコンポーネント
+- `layout.tsx` - レイアウト
+- `loading.tsx` - ローディングUI
+- `error.tsx` - エラーUI
+- `not-found.tsx` - 404ページ
+
+## Server Components vs Client Components
+
+### Server Components（デフォルト）
+- データフェッチはServer Componentsで行う
+- Prismaクエリは直接Server Componentsで実行可能
+- `async/await`を使用してデータ取得
+
+### Client Components
+- `"use client"` ディレクティブを先頭に記述
+- 以下の場合にClient Componentsを使用:
+  - `useState`, `useEffect`などのReact Hooks
+  - ブラウザAPI（`window`, `document`など）
+  - イベントハンドラ（`onClick`, `onChange`など）
+  - Remotionのプレビュー表示
+
+## Server Actions
+
+### 定義方法
+```typescript
+// src/actions/project.ts
+"use server"
+
+import { prisma } from "@/lib/prisma"
+import { revalidatePath } from "next/cache"
+
+export async function createProject(data: ProjectInput) {
+  const project = await prisma.project.create({ data })
+  revalidatePath("/projects")
+  return project
+}
+```
+
+### 使用方法
+- フォームの`action`属性で直接使用
+- Client Componentsから`startTransition`で呼び出し
+- エラーハンドリングを必ず実装
+
+## API Routes
+
+### 配置場所
+`src/app/api/[endpoint]/route.ts`
+
+### 命名規則
+```typescript
+// GET, POST, PUT, DELETE などのHTTPメソッドをエクスポート
+export async function GET(request: Request) { }
+export async function POST(request: Request) { }
+```
+
+### レスポンス形式
+```typescript
+import { NextResponse } from "next/server"
+
+// 成功
+return NextResponse.json({ data }, { status: 200 })
+
+// エラー
+return NextResponse.json({ error: "メッセージ" }, { status: 400 })
+```
+
+## メタデータ
+
+### 静的メタデータ
+```typescript
+export const metadata: Metadata = {
+  title: "ページタイトル | NyankoTube",
+  description: "ページの説明",
+}
+```
+
+### 動的メタデータ
+```typescript
+export async function generateMetadata({ params }): Promise<Metadata> {
+  // データフェッチしてメタデータを生成
+}
+```
+
+## パフォーマンス最適化
+- `loading.tsx`でサスペンスを活用
+- 重いコンポーネントは動的インポート（`next/dynamic`）
+- 画像は`next/image`を使用
+- フォントは`next/font`を使用

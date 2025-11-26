@@ -1,0 +1,183 @@
+---
+description: Tailwind CSS とデザインのルール
+globs: ["**/*.tsx", "**/*.css", "tailwind.config.ts"]
+alwaysApply: false
+---
+
+# スタイリングルール
+
+## Tailwind CSS 設定
+
+### カスタムカラー
+```typescript
+// tailwind.config.ts
+const config = {
+  theme: {
+    extend: {
+      colors: {
+        // ブランドカラー
+        primary: {
+          50: "#fef7ee",
+          100: "#fdedd3",
+          // ... 
+          500: "#f97316", // メインカラー（オレンジ系）
+          600: "#ea580c",
+          // ...
+        },
+        // ダークモード用
+        background: "hsl(var(--background))",
+        foreground: "hsl(var(--foreground))",
+      },
+    },
+  },
+}
+```
+
+### カスタムフォント
+```typescript
+// Noto Sans JP（ゴシック体）をテロップ用に設定
+fontFamily: {
+  sans: ["var(--font-geist-sans)", ...fontFamily.sans],
+  gothic: ["'Noto Sans JP'", "sans-serif"],
+}
+```
+
+## UI デザイン原則
+
+### レイアウト
+- デスクトップファースト（最小幅: 1024px）
+- メインコンテンツは中央配置
+- サイドバー + メインコンテンツのレイアウト
+
+### カラースキーム
+- ダークモード対応（`dark:` プレフィックス使用）
+- コントラスト比を考慮した配色
+- アクセントカラーは控えめに使用
+
+### スペーシング
+- 8pxグリッドシステム（`p-2`, `m-4`, `gap-6` など）
+- セクション間: `space-y-8` または `gap-8`
+- コンポーネント間: `space-y-4` または `gap-4`
+
+## shadcn/ui コンポーネント
+
+### インストール済みコンポーネント
+```bash
+pnpm dlx shadcn@latest add button
+pnpm dlx shadcn@latest add input
+pnpm dlx shadcn@latest add card
+pnpm dlx shadcn@latest add dialog
+pnpm dlx shadcn@latest add slider
+pnpm dlx shadcn@latest add progress
+pnpm dlx shadcn@latest add toast
+pnpm dlx shadcn@latest add dropdown-menu
+```
+
+### 使用例
+```typescript
+import { Button } from "@/components/ui/button"
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
+import { Slider } from "@/components/ui/slider"
+
+// ボタンバリアント
+<Button variant="default">メイン操作</Button>
+<Button variant="secondary">サブ操作</Button>
+<Button variant="destructive">削除</Button>
+<Button variant="ghost">ゴースト</Button>
+<Button variant="outline">アウトライン</Button>
+
+// カード
+<Card>
+  <CardHeader>
+    <CardTitle>プロジェクト名</CardTitle>
+  </CardHeader>
+  <CardContent>
+    {/* コンテンツ */}
+  </CardContent>
+</Card>
+```
+
+## 動画エディタ固有のスタイル
+
+### タイムライン
+```typescript
+// タイムラインのスタイル
+<div className="relative h-16 bg-gray-900 rounded-lg overflow-hidden">
+  {/* 波形表示エリア */}
+  <div className="absolute inset-0 bg-gradient-to-r from-primary-500/20 to-primary-500/40" />
+  
+  {/* 選択範囲 */}
+  <div 
+    className="absolute top-0 bottom-0 bg-primary-500/30 border-x-2 border-primary-500"
+    style={{ left: `${startPercent}%`, width: `${widthPercent}%` }}
+  />
+  
+  {/* 再生位置インジケーター */}
+  <div 
+    className="absolute top-0 bottom-0 w-0.5 bg-white"
+    style={{ left: `${currentPercent}%` }}
+  />
+</div>
+```
+
+### プレビューエリア（9:16）
+```typescript
+<div className="relative bg-black rounded-lg overflow-hidden" style={{ aspectRatio: "9/16" }}>
+  {/* Remotion Player */}
+  <Player
+    component={ShortVideo}
+    compositionWidth={1080}
+    compositionHeight={1920}
+    fps={30}
+    durationInFrames={1800}
+    style={{ width: "100%", height: "100%" }}
+  />
+</div>
+```
+
+## アニメーション
+
+### トランジション
+```typescript
+// 基本的なトランジション
+<div className="transition-all duration-200 ease-in-out">
+
+// ホバーエフェクト
+<button className="hover:scale-105 hover:shadow-lg transition-transform">
+
+// フェードイン
+<div className="animate-fade-in">
+```
+
+### カスタムアニメーション
+```typescript
+// tailwind.config.ts
+animation: {
+  "fade-in": "fadeIn 0.3s ease-in-out",
+  "slide-up": "slideUp 0.3s ease-out",
+}
+keyframes: {
+  fadeIn: {
+    "0%": { opacity: "0" },
+    "100%": { opacity: "1" },
+  },
+  slideUp: {
+    "0%": { transform: "translateY(10px)", opacity: "0" },
+    "100%": { transform: "translateY(0)", opacity: "1" },
+  },
+}
+```
+
+## レスポンシブ対応
+- モバイルでは「非対応」のメッセージを表示
+- タブレット（md:）以上で編集機能を提供
+- デスクトップ（lg:）で最適な体験を提供
+
+```typescript
+<div className="hidden md:block">
+  {/* 編集UI */}
+</div>
+<div className="md:hidden p-8 text-center">
+  <p>このアプリはデスクトップでご利用ください</p>
+</div>
+```

@@ -1,0 +1,156 @@
+---
+description: React コンポーネントのルール
+globs: ["src/components/**/*.{ts,tsx}"]
+alwaysApply: false
+---
+
+# React コンポーネントルール
+
+## ファイル構成
+```
+src/components/
+├── ui/           # shadcn/ui コンポーネント（自動生成）
+├── video/        # 動画関連
+│   ├── VideoUploader.tsx
+│   ├── VideoPlayer.tsx
+│   ├── Timeline.tsx
+│   └── Preview.tsx
+├── editor/       # 編集関連
+│   ├── SubtitleEditor.tsx
+│   └── AudioMixer.tsx
+└── layout/       # レイアウト
+    ├── Header.tsx
+    ├── Sidebar.tsx
+    └── Footer.tsx
+```
+
+## コンポーネント定義
+
+### 基本構造
+```typescript
+"use client" // Client Componentの場合のみ
+
+import { useState } from "react"
+import { cn } from "@/lib/utils"
+
+interface VideoUploaderProps {
+  onUpload: (file: File) => void
+  accept?: string
+  maxSize?: number
+  className?: string
+}
+
+export function VideoUploader({
+  onUpload,
+  accept = "video/mp4,video/quicktime",
+  maxSize = 1024 * 1024 * 500, // 500MB
+  className,
+}: VideoUploaderProps) {
+  const [isDragging, setIsDragging] = useState(false)
+
+  // ...実装
+
+  return (
+    <div className={cn("...", className)}>
+      {/* JSX */}
+    </div>
+  )
+}
+```
+
+## Props設計
+
+### 命名規則
+- イベントハンドラ: `on` + 動詞（例: `onUpload`, `onChange`）
+- 状態: `is` + 形容詞（例: `isLoading`, `isDisabled`）
+- 子要素: `children` または具体的な名前（例: `icon`, `label`）
+
+### 型定義
+```typescript
+// 基本的なPropsパターン
+interface ComponentProps {
+  children?: React.ReactNode
+  className?: string
+  // 必須props
+  value: string
+  onChange: (value: string) => void
+  // オプションprops
+  disabled?: boolean
+  placeholder?: string
+}
+```
+
+## スタイリング
+
+### Tailwind CSS
+```typescript
+// cn() ユーティリティでクラス名を結合
+import { cn } from "@/lib/utils"
+
+<div className={cn(
+  "base-classes",
+  isActive && "active-classes",
+  className
+)}>
+```
+
+### shadcn/ui 活用
+```typescript
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Card, CardHeader, CardContent } from "@/components/ui/card"
+
+// バリアント使用
+<Button variant="default" size="lg">
+  動画を生成
+</Button>
+```
+
+## 状態管理
+
+### ローカル状態
+```typescript
+const [file, setFile] = useState<File | null>(null)
+const [progress, setProgress] = useState(0)
+const [error, setError] = useState<string | null>(null)
+```
+
+### フォーム状態
+```typescript
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { z } from "zod"
+
+const schema = z.object({
+  name: z.string().min(1, "プロジェクト名を入力してください"),
+  startTime: z.number().min(0),
+  endTime: z.number().max(3600),
+})
+
+const form = useForm({
+  resolver: zodResolver(schema),
+  defaultValues: { name: "", startTime: 0, endTime: 55 },
+})
+```
+
+## 動画関連コンポーネント
+
+### VideoPlayer
+- HTML5 `<video>` タグをラップ
+- 再生/停止、シーク、音量調整
+- 現在時刻の表示・取得
+
+### Timeline
+- 動画の切り出し範囲を視覚的に選択
+- ドラッグ&ドロップで開始/終了位置を調整
+- サムネイルプレビュー表示
+
+### Preview
+- Remotionの`<Player>`を使用
+- 縦型（9:16）でプレビュー表示
+- リアルタイムでテロップ・エフェクトを確認
+
+## アクセシビリティ
+- `aria-label` を適切に設定
+- キーボード操作をサポート
+- フォーカス状態を視覚的に表示

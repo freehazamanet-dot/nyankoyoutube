@@ -1,0 +1,135 @@
+---
+description: Prisma ORM のルール
+globs: ["prisma/**/*", "src/lib/prisma.ts", "src/**/*.prisma"]
+alwaysApply: false
+---
+
+# Prisma ルール
+
+## スキーマ定義
+
+### モデル命名規則
+- モデル名はパスカルケース・単数形（例: `Project`, `Video`）
+- テーブル名は`@@map`でスネークケース・複数形にマッピング
+
+### 基本構造
+```prisma
+model Project {
+  id        String   @id @default(uuid())
+  name      String
+  status    ProjectStatus @default(DRAFT)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  videos    Video[]
+
+  @@map("projects")
+}
+```
+
+### Enum定義
+```prisma
+enum ProjectStatus {
+  DRAFT
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum VideoType {
+  SOURCE
+  OPENING
+  OUTPUT
+}
+
+enum AudioType {
+  BGM
+  SE
+}
+```
+
+## Prismaクライアント
+
+### シングルトンパターン
+```typescript
+// src/lib/prisma.ts
+import { PrismaClient } from "@prisma/client"
+
+const globalForPrisma = globalThis as unknown as {
+  prisma: PrismaClient | undefined
+}
+
+export const prisma = globalForPrisma.prisma ?? new PrismaClient()
+
+if (process.env.NODE_ENV !== "production") {
+  globalForPrisma.prisma = prisma
+}
+```
+
+## クエリパターン
+
+### 基本的なCRUD
+```typescript
+// 作成
+const project = await prisma.project.create({
+  data: { name: "新規プロジェクト" },
+})
+
+// 取得（リレーション含む）
+const project = await prisma.project.findUnique({
+  where: { id },
+  include: {
+    videos: true,
+  },
+})
+
+// 更新
+const project = await prisma.project.update({
+  where: { id },
+  data: { status: "COMPLETED" },
+})
+
+// 削除（カスケード）
+await prisma.project.delete({
+  where: { id },
+})
+```
+
+### トランザクション
+```typescript
+const result = await prisma.$transaction(async (tx) => {
+  const project = await tx.project.create({ data: { name } })
+  const video = await tx.video.create({
+    data: { projectId: project.id, type: "SOURCE" },
+  })
+  return { project, video }
+})
+```
+
+## マイグレーション
+
+### コマンド
+```bash
+# マイグレーション作成
+pnpm prisma migrate dev --name <migration_name>
+
+# 本番適用
+pnpm prisma migrate deploy
+
+# スキーマ同期（開発用）
+pnpm prisma db push
+
+# クライアント生成
+pnpm prisma generate
+```
+
+### 命名規則
+マイグレーション名はスネークケースで内容を表す:
+- `add_videos_table`
+- `add_status_to_projects`
+- `create_subtitles_table`
+
+## 注意事項
+- 本番環境では`prisma db push`は使用しない
+- 大量データ処理は`createMany`/`updateMany`を使用
+- N+1問題を避けるため`include`を適切に使用

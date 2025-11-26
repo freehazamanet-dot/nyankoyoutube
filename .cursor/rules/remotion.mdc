@@ -1,0 +1,148 @@
+---
+description: Remotion 動画生成のルール
+globs: ["src/remotion/**/*.{ts,tsx}"]
+alwaysApply: false
+---
+
+# Remotion ルール
+
+## 動画仕様
+- **解像度**: 1080 x 1920 (9:16 縦型)
+- **フレームレート**: 30fps
+- **動画長**: 60秒 (1800フレーム)
+- **オープニング**: 5秒 (150フレーム)
+- **本編**: 55秒 (1650フレーム)
+
+## Composition設定
+
+### Root.tsx
+```typescript
+import { Composition } from "remotion"
+import { ShortVideo } from "./compositions/ShortVideo"
+
+export const RemotionRoot = () => {
+  return (
+    <Composition
+      id="ShortVideo"
+      component={ShortVideo}
+      durationInFrames={1800} // 60秒 × 30fps
+      fps={30}
+      width={1080}
+      height={1920}
+      defaultProps={{
+        // デフォルトプロパティ
+      }}
+    />
+  )
+}
+```
+
+## コンポーネント構成
+
+### ShortVideo.tsx（メインコンポジション）
+```typescript
+import { AbsoluteFill, Sequence } from "remotion"
+import { Opening } from "../components/Opening"
+import { MainContent } from "../components/MainContent"
+import { Subtitle } from "../components/Subtitle"
+
+export const ShortVideo: React.FC<ShortVideoProps> = ({
+  openingVideo,
+  mainVideo,
+  subtitles,
+  bgm,
+}) => {
+  return (
+    <AbsoluteFill>
+      {/* オープニング: 0-150フレーム（5秒） */}
+      <Sequence from={0} durationInFrames={150}>
+        <Opening src={openingVideo} />
+      </Sequence>
+
+      {/* 本編: 150-1800フレーム（55秒） */}
+      <Sequence from={150} durationInFrames={1650}>
+        <MainContent src={mainVideo} />
+      </Sequence>
+
+      {/* テロップ: 本編上にオーバーレイ */}
+      <Sequence from={150}>
+        {subtitles.map((subtitle) => (
+          <Subtitle key={subtitle.id} {...subtitle} />
+        ))}
+      </Sequence>
+
+      {/* BGM */}
+      <Audio src={bgm} volume={0.3} />
+    </AbsoluteFill>
+  )
+}
+```
+
+## テロップスタイル
+
+### 基本スタイル
+```typescript
+const subtitleStyle: React.CSSProperties = {
+  position: "absolute",
+  bottom: 150, // セーフエリア考慮
+  left: 0,
+  right: 0,
+  textAlign: "center",
+  fontFamily: "'Noto Sans JP', sans-serif", // ゴシック体
+  fontSize: 48,
+  fontWeight: 700,
+  color: "#FFFFFF",
+  textShadow: `
+    2px 2px 0 #000,
+    -2px 2px 0 #000,
+    2px -2px 0 #000,
+    -2px -2px 0 #000,
+    0 4px 8px rgba(0, 0, 0, 0.5)
+  `, // 縁取り + 影
+  padding: "0 40px",
+}
+```
+
+## フック活用
+
+### useCurrentFrame
+```typescript
+import { useCurrentFrame, useVideoConfig, interpolate } from "remotion"
+
+export const AnimatedText = () => {
+  const frame = useCurrentFrame()
+  const { fps } = useVideoConfig()
+
+  const opacity = interpolate(frame, [0, 15], [0, 1], {
+    extrapolateRight: "clamp",
+  })
+
+  return <div style={{ opacity }}>テキスト</div>
+}
+```
+
+## レンダリング
+
+### サーバーサイドレンダリング
+```typescript
+import { renderMedia, selectComposition } from "@remotion/renderer"
+
+const composition = await selectComposition({
+  serveUrl: bundleLocation,
+  id: "ShortVideo",
+  inputProps,
+})
+
+await renderMedia({
+  composition,
+  serveUrl: bundleLocation,
+  codec: "h264",
+  outputLocation: outputPath,
+  inputProps,
+})
+```
+
+## 注意事項
+- 動画素材は事前にCloud Storageから取得してローカルパスを渡す
+- フォントは`public/fonts`に配置して読み込む
+- 重い処理はCloud Tasksで非同期実行
