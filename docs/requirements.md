@@ -433,15 +433,15 @@ startRendering(projectId: string): Promise<RenderJob>
 - [x] Prisma + PostgreSQL セットアップ
 - [x] Tailwind CSS + shadcn/ui 設定
 - [x] 基本的なレイアウト・ナビゲーション
-- [ ] Cloud Storage 連携（アップロード機能）
+- [x] Cloud Storage 連携（アップロード機能）
 
 ### Phase 2: コア機能実装（2-3週目）
-- [ ] 動画アップロード・保存機能
-- [ ] Remotion セットアップ
-- [ ] 動画切り出し機能（タイムライン UI）
-- [ ] アスペクト比変換（16:9 → 9:16）
-- [ ] オープニング挿入機能
-- [ ] プレビュー機能
+- [x] 動画アップロード・保存機能
+- [x] Remotion セットアップ
+- [x] 動画切り出し機能（タイムライン UI）
+- [x] アスペクト比変換（16:9 → 9:16）
+- [x] オープニング挿入機能
+- [ ] プレビュー機能（Remotion Player統合済み、動画読み込み未実装）
 
 ### Phase 3: テロップ機能（4週目）
 - [ ] Whisper API 連携

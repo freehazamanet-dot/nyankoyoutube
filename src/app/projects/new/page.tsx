@@ -5,8 +5,10 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { Progress } from "@/components/ui/progress"
 import { toast } from "sonner"
 import { VideoUploader } from "@/components/video/video-uploader"
+import { createProject } from "@/actions/project"
 
 export default function NewProjectPage() {
   const router = useRouter()
@@ -14,6 +16,7 @@ export default function NewProjectPage() {
   const [sourceVideo, setSourceVideo] = useState<File | null>(null)
   const [openingVideo, setOpeningVideo] = useState<File | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(0)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -29,20 +32,33 @@ export default function NewProjectPage() {
     }
 
     setIsSubmitting(true)
+    setUploadProgress(10)
 
     try {
-      // TODO: APIを呼び出してプロジェクトを作成
-      // const formData = new FormData()
-      // formData.append("name", projectName)
-      // formData.append("sourceVideo", sourceVideo)
-      // if (openingVideo) formData.append("openingVideo", openingVideo)
-      
-      toast.success("プロジェクトを作成しました")
-      router.push("/projects")
+      const formData = new FormData()
+      formData.append("name", projectName)
+      formData.append("sourceVideo", sourceVideo)
+      if (openingVideo) {
+        formData.append("openingVideo", openingVideo)
+      }
+
+      setUploadProgress(30)
+
+      const result = await createProject(formData)
+
+      setUploadProgress(100)
+
+      if (result.success && result.projectId) {
+        toast.success("プロジェクトを作成しました")
+        router.push(`/projects/${result.projectId}`)
+      } else {
+        toast.error(result.error || "プロジェクトの作成に失敗しました")
+      }
     } catch {
       toast.error("プロジェクトの作成に失敗しました")
     } finally {
       setIsSubmitting(false)
+      setUploadProgress(0)
     }
   }
 
@@ -69,6 +85,7 @@ export default function NewProjectPage() {
               placeholder="例: ゲーム実況 #1"
               value={projectName}
               onChange={(e) => setProjectName(e.target.value)}
+              disabled={isSubmitting}
             />
           </CardContent>
         </Card>
@@ -78,7 +95,7 @@ export default function NewProjectPage() {
           <CardHeader>
             <CardTitle>元動画 *</CardTitle>
             <CardDescription>
-              切り出す元となる動画をアップロードしてください（MP4, MOV）
+              切り出す元となる動画をアップロードしてください（MP4, MOV / 最大500MB）
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -86,6 +103,7 @@ export default function NewProjectPage() {
               accept="video/mp4,video/quicktime"
               onFileSelect={setSourceVideo}
               selectedFile={sourceVideo}
+              disabled={isSubmitting}
             />
           </CardContent>
         </Card>
@@ -103,9 +121,25 @@ export default function NewProjectPage() {
               accept="video/mp4,video/quicktime"
               onFileSelect={setOpeningVideo}
               selectedFile={openingVideo}
+              disabled={isSubmitting}
             />
           </CardContent>
         </Card>
+
+        {/* アップロード進捗 */}
+        {isSubmitting && (
+          <Card>
+            <CardContent className="pt-6">
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span>アップロード中...</span>
+                  <span>{uploadProgress}%</span>
+                </div>
+                <Progress value={uploadProgress} />
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* 送信ボタン */}
         <div className="flex gap-4 justify-end">
@@ -113,15 +147,15 @@ export default function NewProjectPage() {
             type="button"
             variant="outline"
             onClick={() => router.back()}
+            disabled={isSubmitting}
           >
             キャンセル
           </Button>
           <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "作成中..." : "プロジェクトを作成"}
+            {isSubmitting ? "アップロード中..." : "プロジェクトを作成"}
           </Button>
         </div>
       </form>
     </div>
   )
 }
-

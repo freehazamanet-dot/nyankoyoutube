@@ -9,6 +9,7 @@ interface VideoUploaderProps {
   selectedFile: File | null
   maxSize?: number // bytes
   className?: string
+  disabled?: boolean
 }
 
 export function VideoUploader({
@@ -17,6 +18,7 @@ export function VideoUploader({
   selectedFile,
   maxSize = 1024 * 1024 * 500, // 500MB
   className,
+  disabled = false,
 }: VideoUploaderProps) {
   const [isDragging, setIsDragging] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -108,14 +110,18 @@ export function VideoUploader({
         </div>
       ) : (
         <label
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
+          onDragOver={disabled ? undefined : handleDragOver}
+          onDragLeave={disabled ? undefined : handleDragLeave}
+          onDrop={disabled ? undefined : handleDrop}
           className={cn(
-            "flex flex-col items-center justify-center w-full h-40 border-2 border-dashed rounded-lg cursor-pointer transition-colors",
-            isDragging
+            "flex flex-col items-center justify-center w-full h-40 border-2 border-dashed rounded-lg transition-colors",
+            disabled
+              ? "cursor-not-allowed opacity-50"
+              : "cursor-pointer",
+            !disabled && isDragging
               ? "border-primary bg-primary/5"
-              : "border-muted-foreground/25 hover:border-muted-foreground/50 hover:bg-muted/50"
+              : "border-muted-foreground/25",
+            !disabled && !isDragging && "hover:border-muted-foreground/50 hover:bg-muted/50"
           )}
         >
           <div className="flex flex-col items-center justify-center pt-5 pb-6">
@@ -134,6 +140,7 @@ export function VideoUploader({
             accept={accept}
             onChange={handleInputChange}
             className="hidden"
+            disabled={disabled}
           />
         </label>
       )}
