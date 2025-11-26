@@ -70,3 +70,5 @@ temp/
 # Uploaded files
 uploads/
 
+
+/src/generated/prisma

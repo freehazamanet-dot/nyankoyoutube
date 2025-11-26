@@ -1,0 +1,123 @@
+// NyankoTube Database Schema
+// 長尺動画からYouTubeショート動画を自動生成するアプリケーション
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// プロジェクトの状態
+enum ProjectStatus {
+  DRAFT      // 下書き
+  PROCESSING // 処理中
+  COMPLETED  // 完了
+  FAILED     // 失敗
+}
+
+// 動画の種別
+enum VideoType {
+  SOURCE  // 元動画
+  OPENING // オープニング動画
+  OUTPUT  // 出力動画
+}
+
+// 音声トラックの種別
+enum AudioType {
+  BGM // 背景音楽
+  SE  // 効果音
+}
+
+// プロジェクト
+model Project {
+  id         String        @id @default(uuid())
+  name       String
+  status     ProjectStatus @default(DRAFT)
+  outputPath String?       @map("output_path")
+  createdAt  DateTime      @default(now()) @map("created_at")
+  updatedAt  DateTime      @updatedAt @map("updated_at")
+
+  // リレーション
+  videos Video[]
+
+  @@map("projects")
+}
+
+// 動画
+model Video {
+  id        String    @id @default(uuid())
+  projectId String    @map("project_id")
+  type      VideoType
+  filePath  String    @map("file_path")
+  duration  Float?    // 動画長（秒）
+  startTime Float?    @map("start_time") // 切り出し開始位置（秒）
+  endTime   Float?    @map("end_time") // 切り出し終了位置（秒）
+  cropX     Int?      @map("crop_x") // クロップX座標
+  cropY     Int?      @map("crop_y") // クロップY座標
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  // リレーション
+  project      Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  subtitles    Subtitle[]
+  audioTracks  AudioTrack[]
+  cursorTracks CursorTrack[]
+
+  @@map("videos")
+}
+
+// 字幕
+model Subtitle {
+  id        String   @id @default(uuid())
+  videoId   String   @map("video_id")
+  text      String
+  startTime Float    @map("start_time") // 表示開始時間（秒）
+  endTime   Float    @map("end_time") // 表示終了時間（秒）
+  order     Int      // 表示順序
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // リレーション
+  video Video @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  @@map("subtitles")
+}
+
+// 音声トラック
+model AudioTrack {
+  id        String    @id @default(uuid())
+  videoId   String    @map("video_id")
+  type      AudioType
+  filePath  String    @map("file_path")
+  volume    Float     @default(1.0) // 音量（0.0-1.0）
+  startTime Float     @default(0) @map("start_time") // 再生開始時間（秒）
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  // リレーション
+  video Video @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  @@map("audio_tracks")
+}
+
+// カーソル追跡データ
+model CursorTrack {
+  id          String   @id @default(uuid())
+  videoId     String   @map("video_id")
+  frameNumber Int      @map("frame_number") // フレーム番号
+  cursorX     Int      @map("cursor_x") // カーソルX座標（元動画内）
+  cursorY     Int      @map("cursor_y") // カーソルY座標（元動画内）
+  cropX       Int      @map("crop_x") // 計算されたクロップX座標
+  cropY       Int      @map("crop_y") // 計算されたクロップY座標
+  confidence  Float    @default(1.0) // 検出信頼度（0.0-1.0）
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  // リレーション
+  video Video @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  @@index([videoId, frameNumber])
+  @@map("cursor_tracks")
+}

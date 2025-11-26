@@ -1,99 +1,36 @@
-# 🐱 NyankoTube
+This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
-長尺動画（60分程度）からYouTubeショート向けの60秒縦型動画を自動生成するWebアプリケーション
+## Getting Started
 
-## ✨ 主な機能
-
-- 📹 **動画切り出し** - 長尺動画から任意の部分を選択
-- 🖱️ **スマートクロップ** - カーソル位置を自動追跡して縦型動画に変換
-- 🎬 **オープニング挿入** - 5秒のオープニング動画を自動挿入
-- 📝 **テロップ自動生成** - 音声から字幕を自動生成
-- 🎵 **BGM/SE追加** - 背景音楽・効果音の追加
-
-## 🛠️ 技術スタック
-
-| カテゴリ | 技術 |
-|----------|------|
-| フレームワーク | Next.js 14 (App Router) |
-| 言語 | TypeScript 5.x |
-| ORM | Prisma |
-| データベース | PostgreSQL |
-| スタイリング | Tailwind CSS + shadcn/ui |
-| 動画生成 | Remotion + FFmpeg |
-| 音声認識 | Whisper API (OpenAI) |
-| インフラ | Google Cloud Platform |
-
-## 📐 出力仕様
-
-- **形式**: MP4
-- **解像度**: 1080 x 1920 (9:16 縦型)
-- **長さ**: 60秒
-- **フレームレート**: 30fps
-
-## 🚀 セットアップ
-
-### 必要条件
-
-- Node.js 20.x LTS
-- pnpm
-- PostgreSQL
-- FFmpeg
-
-### インストール
+First, run the development server:
 
 ```bash
-# リポジトリをクローン
-git clone https://github.com/YOUR_USERNAME/nyankoyoutube.git
-cd nyankoyoutube
-
-# 依存関係をインストール
-pnpm install
-
-# 環境変数を設定
-cp .env.example .env.local
-
-# データベースをセットアップ
-pnpm prisma migrate dev
-
-# 開発サーバーを起動
+npm run dev
+# or
+yarn dev
+# or
 pnpm dev
+# or
+bun dev
 ```
 
-### 環境変数
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-```env
-# Database
-DATABASE_URL=postgresql://...
+You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
-# Google Cloud
-GCP_PROJECT_ID=your-project-id
-GCS_BUCKET_NAME=your-bucket-name
+This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
-# OpenAI
-OPENAI_API_KEY=sk-...
-```
+## Learn More
 
-## 📁 ディレクトリ構成
+To learn more about Next.js, take a look at the following resources:
 
-```
-src/
-├── app/          # Next.js App Router
-├── components/   # React コンポーネント
-├── remotion/     # Remotion 動画テンプレート
-├── lib/          # ユーティリティ
-├── actions/      # Server Actions
-└── types/        # 型定義
-```
+- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
+- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
 
-## 📄 ドキュメント
+You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
-- [要件定義書](./docs/requirements.md)
+## Deploy on Vercel
 
-## 📝 ライセンス
+The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
-MIT License
-
-## 👤 作者
-
-Your Name
-
+Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
